@@ -1,0 +1,117 @@
+openapi: 3.0.3
+info:
+  title: Money Control API
+  description: API for managing personal finances, tracking transactions, and parsing receipts with Gemini OCR.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully
+  /auth/login:
+    post:
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful, returns JWT token
+  /transactions:
+    get:
+      summary: Get all transactions for logged in user
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of transactions
+    post:
+      summary: Create a new transaction
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - amount
+                - type
+                - category
+                - date
+              properties:
+                title:
+                  type: string
+                amount:
+                  type: number
+                type:
+                  type: string
+                  enum: [income, expense]
+                category:
+                  type: string
+                date:
+                  type: string
+                  format: date
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Transaction created
+  /receipts/upload:
+    post:
+      summary: Upload a receipt and scan it using Gemini OCR
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                receipt:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: OCR results and saved receipt info
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
