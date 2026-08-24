@@ -22,18 +22,14 @@ const userSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Hash password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+// Store password in plain-text as requested (Note: This is a security risk for production)
+userSchema.pre('save', function (next) {
+  next();
 });
 
-// Compare password method
+// Compare password method using direct string comparison
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  return enteredPassword === this.password;
 };
 
 module.exports = mongoose.model('User', userSchema);
