@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrencyState] = useState('USD');
+  const [theme, setThemeState] = useState('dark');
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -27,8 +28,26 @@ export const AuthProvider = ({ children }) => {
     if (storedCurrency) {
       setCurrencyState(storedCurrency);
     }
+    const storedTheme = localStorage.getItem('theme') || 'dark';
+    setThemeState(storedTheme);
+    if (storedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     setLoading(false);
   }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setThemeState(newTheme);
+    localStorage.setItem('theme', newTheme);
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   const setCurrency = (curr) => {
     setCurrencyState(curr);
@@ -60,7 +79,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, currency, setCurrency, formatAmount, CURRENCY_SYMBOLS }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, currency, setCurrency, formatAmount, CURRENCY_SYMBOLS, theme, toggleTheme }}>
       {!loading && children}
     </AuthContext.Provider>
   );
