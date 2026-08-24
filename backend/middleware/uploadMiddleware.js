@@ -1,24 +1,5 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
-
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename(req, file, cb) {
-    cb(
-      null,
-      `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-    );
-  },
-});
 
 function checkFileType(file, cb) {
   const filetypes = /jpg|jpeg|png|pdf/;
@@ -32,8 +13,11 @@ function checkFileType(file, cb) {
   }
 }
 
+// Files are held in memory only long enough to send to Gemini for OCR, then
+// discarded - nothing is persisted to disk (serverless filesystems are
+// ephemeral, so a written file wouldn't be retrievable afterward anyway).
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter(req, file, cb) {
     checkFileType(file, cb);
   },

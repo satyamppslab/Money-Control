@@ -1,4 +1,3 @@
-const fs = require('fs');
 const Receipt = require('../models/Receipt');
 
 // Try loading Google Gen AI SDK
@@ -10,11 +9,11 @@ try {
   console.warn('Google Gen AI SDK not loaded yet. Mock OCR mode will be active until npm install runs.');
 }
 
-// Helper to convert file to GoogleGenAI Part object
-function fileToGenerativePart(path, mimeType) {
+// Helper to convert an in-memory file buffer to a GoogleGenAI Part object
+function fileToGenerativePart(buffer, mimeType) {
   return {
     inlineData: {
-      data: Buffer.from(fs.readFileSync(path)).toString('base64'),
+      data: buffer.toString('base64'),
       mimeType,
     },
   };
@@ -28,15 +27,13 @@ const uploadAndScanReceipt = async (req, res) => {
     return res.status(400).json({ message: 'No file uploaded' });
   }
 
-  const filePath = req.file.path;
   const mimeType = req.file.mimetype;
-  const relativePath = `/uploads/${req.file.filename}`;
 
-  // Initialize receipt entry
+  // Initialize receipt entry - the file itself is never persisted, only the
+  // OCR result extracted from it.
   const receipt = new Receipt({
     user: req.user._id,
-    filename: req.file.filename,
-    path: relativePath,
+    filename: req.file.originalname,
     status: 'pending',
   });
 
@@ -75,7 +72,7 @@ const uploadAndScanReceipt = async (req, res) => {
         }
       `;
 
-      const filePart = fileToGenerativePart(filePath, mimeType);
+      const filePart = fileToGenerativePart(req.file.buffer, mimeType);
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -126,7 +123,6 @@ const uploadAndScanReceipt = async (req, res) => {
 
     res.status(200).json({
       message: 'Receipt uploaded and processed successfully',
-      receiptUrl: relativePath,
       data: ocrResult,
     });
   } catch (error) {
