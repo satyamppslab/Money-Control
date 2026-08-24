@@ -22,6 +22,11 @@ const createTransaction = async (req, res) => {
     return res.status(400).json({ message: 'Please provide all required fields' });
   }
 
+  // Prevent selecting future dates (e.g. tomorrow or beyond)
+  if (date && new Date(date) > new Date()) {
+    return res.status(400).json({ message: 'Transaction date cannot be in the future' });
+  }
+
   try {
     const transaction = new Transaction({
       user: req.user._id,
