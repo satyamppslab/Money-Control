@@ -210,32 +210,65 @@ const Dashboard = () => {
             Hover over a day to see the total expense amount. Darker squares indicate higher spending days.
           </p>
 
-          {/* Square Heatmap Grid */}
-          <div className="flex flex-wrap gap-2.5 justify-center sm:justify-start">
-            {Object.entries(dailyExpenses).map(([day, amount]) => {
-              const fraction = amount / maxDailyExpense;
-              // Set background colors based on spending percentage
-              let bgColor = 'bg-slate-950 border border-slate-900';
-              if (amount > 0) {
-                if (fraction < 0.25) bgColor = 'bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/10';
-                else if (fraction < 0.5) bgColor = 'bg-emerald-500/40 hover:bg-emerald-500/55 border border-emerald-500/20';
-                else if (fraction < 0.75) bgColor = 'bg-emerald-500/65 hover:bg-emerald-500/80 border border-emerald-500/30';
-                else bgColor = 'bg-emerald-500 hover:bg-emerald-400 border border-emerald-500/40 text-slate-950';
-              }
+          {/* Square Heatmap Calendar Grid */}
+          <div className="max-w-md mx-auto sm:mx-0">
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+              <span>Sun</span>
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+            </div>
 
-              return (
+            {/* Calendar Grid Cells */}
+            <div className="grid grid-cols-7 gap-2">
+              {/* Previous Month Offsets (Blank spacers) */}
+              {Array.from({ length: new Date(selectedYear, selectedMonth, 1).getDay() }).map((_, idx) => (
                 <div
-                  key={day}
-                  className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center text-[10px] font-bold transition-all relative cursor-help select-none ${bgColor}`}
-                  onMouseEnter={() => setHoveredDay({ day, amount })}
-                  onMouseLeave={() => setHoveredDay(null)}
-                >
-                  <span className={amount > 0.75 * maxDailyExpense ? 'text-slate-950' : 'text-slate-400'}>
-                    {day}
-                  </span>
-                </div>
-              );
-            })}
+                  key={`empty-${idx}`}
+                  className="aspect-square bg-slate-950/20 border border-slate-900/50 rounded-lg opacity-25"
+                ></div>
+              ))}
+
+              {/* Active Month Days */}
+              {Object.entries(dailyExpenses).map(([day, amount]) => {
+                const fraction = amount / maxDailyExpense;
+                // Set background colors based on spending percentage
+                let bgColor = 'bg-slate-950 border border-slate-900';
+                if (amount > 0) {
+                  if (fraction < 0.25) bgColor = 'bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/10';
+                  else if (fraction < 0.5) bgColor = 'bg-emerald-500/40 hover:bg-emerald-500/55 border border-emerald-500/20';
+                  else if (fraction < 0.75) bgColor = 'bg-emerald-500/65 hover:bg-emerald-500/80 border border-emerald-500/30';
+                  else bgColor = 'bg-emerald-500 hover:bg-emerald-400 border border-emerald-500/40 text-slate-950';
+                }
+
+                return (
+                  <div
+                    key={day}
+                    className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xs font-bold transition-all relative cursor-help select-none ${bgColor}`}
+                    onMouseEnter={() => setHoveredDay({ day, amount })}
+                    onMouseLeave={() => setHoveredDay(null)}
+                  >
+                    <span className={amount > 0.75 * maxDailyExpense ? 'text-slate-950' : 'text-slate-400'}>
+                      {day}
+                    </span>
+                  </div>
+                );
+              })}
+
+              {/* Next Month Offsets to pad the final row */}
+              {Array.from({
+                length: (7 - ((new Date(selectedYear, selectedMonth, 1).getDay() + daysInMonth) % 7)) % 7
+              }).map((_, idx) => (
+                <div
+                  key={`empty-end-${idx}`}
+                  className="aspect-square bg-slate-950/20 border border-slate-900/50 rounded-lg opacity-25"
+                ></div>
+              ))}
+            </div>
           </div>
 
           {/* Heatmap Tooltip */}
