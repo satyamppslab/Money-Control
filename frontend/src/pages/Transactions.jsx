@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { PlusCircle, Search, Trash2, Calendar, Tag, DollarSign, Filter } from 'lucide-react';
 
 const Transactions = () => {
-  const { formatAmount, currency } = useAuth();
+  const { formatAmount, currency, convertToBase } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
@@ -36,7 +36,7 @@ const Transactions = () => {
     try {
       await api.post('/transactions', {
         title,
-        amount: Number(amount),
+        amount: convertToBase(amount, currency),
         type,
         category,
         date,
