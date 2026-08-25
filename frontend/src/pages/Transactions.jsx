@@ -16,7 +16,21 @@ const Transactions = () => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
 
-  const categories = ['Food', 'Utilities', 'Rent', 'Entertainment', 'Salary', 'Investment', 'Other'];
+  const categories = [
+    'Food', 
+    'Utilities', 
+    'Rent', 
+    'Entertainment', 
+    'Salary', 
+    'Investment', 
+    'Shopping', 
+    'Travel', 
+    'Health', 
+    'Education', 
+    'Groceries',
+    'Insurance',
+    'Other'
+  ];
 
   const fetchTransactions = async () => {
     try {
@@ -231,7 +245,7 @@ const Transactions = () => {
                     max={new Date().toISOString().split('T')[0]}
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2 px-3 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm transition-colors cursor-pointer"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2 px-3 text-slate-800 dark:text-white dark:[color-scheme:dark] focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm transition-colors cursor-pointer"
                   />
                 </div>
               </div>
