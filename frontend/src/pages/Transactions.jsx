@@ -94,6 +94,16 @@ const Transactions = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <style>{`
+        /* Direct override for dark mode calendar picker icon contrast */
+        .dark input[type="date"]::-webkit-calendar-picker-indicator {
+          filter: invert(1) !important;
+          cursor: pointer;
+        }
+        .dark input[type="date"] {
+          color: #ffffff !important;
+        }
+      `}</style>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Transaction Log Area */}
         <div className="lg:col-span-2 space-y-6">
@@ -232,7 +242,9 @@ const Transactions = () => {
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2 px-3 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm transition-colors cursor-pointer"
                   >
                     {categories.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c} className="bg-white dark:bg-slate-950 text-slate-850 dark:text-white">
+                        {c}
+                      </option>
                     ))}
                   </select>
                 </div>
