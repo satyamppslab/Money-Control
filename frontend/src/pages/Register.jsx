@@ -34,14 +34,14 @@ const Register = () => {
       {/* Background ambient glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
-      <div className="bg-slate-900/60 border border-slate-800 backdrop-blur-xl p-8 rounded-2xl w-full max-w-md shadow-2xl relative z-10">
+      <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl p-8 rounded-2xl w-full max-w-md shadow-2xl relative z-10 transition-colors duration-200">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-extrabold text-white tracking-tight">Create Account</h2>
-          <p className="text-slate-400 mt-2 text-sm">Join MoneyControl and take charge of your finances</p>
+          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Create Account</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Join MoneyControl and take charge of your finances</p>
         </div>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-lg text-sm mb-6">
+          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 dark:text-rose-400 p-3 rounded-lg text-sm mb-6">
             {error}
           </div>
         )}
@@ -49,53 +49,53 @@ const Register = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Username */}
           <div>
-            <label className="block text-slate-300 text-sm font-semibold mb-2">Username</label>
+            <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">Username</label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-450 dark:text-slate-500" />
               <input
                 type="text"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="John Doe"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-brand-500 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2.5 pl-10 pr-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm"
               />
             </div>
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-slate-300 text-sm font-semibold mb-2">Email Address</label>
+            <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">Email Address</label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-450 dark:text-slate-500" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-brand-500 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2.5 pl-10 pr-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm"
               />
             </div>
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-slate-300 text-sm font-semibold mb-2">Password</label>
+            <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-450 dark:text-slate-500" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-brand-500 rounded-lg py-2.5 pl-10 pr-10 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2.5 pl-10 pr-10 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 focus:outline-none"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-450 dark:text-slate-500 hover:text-slate-755 dark:hover:text-slate-300 focus:outline-none"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -114,9 +114,9 @@ const Register = () => {
         </form>
 
         <div className="text-center mt-6">
-          <p className="text-slate-400 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
             Already have an account?{' '}
-            <Link to="/login" className="text-brand-400 hover:text-brand-300 font-semibold transition-colors">
+            <Link to="/login" className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-semibold transition-colors">
               Log in
             </Link>
           </p>
