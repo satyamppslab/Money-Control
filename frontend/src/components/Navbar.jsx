@@ -56,33 +56,33 @@ const Navbar = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   to="/"
-                  className="flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="flex items-center space-x-1 text-slate-800 dark:text-slate-300 hover:text-slate-955 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   <LayoutDashboard className="h-4 w-4" />
                   <span>Dashboard</span>
                 </Link>
                 <Link
                   to="/transactions"
-                  className="flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="flex items-center space-x-1 text-slate-800 dark:text-slate-300 hover:text-slate-955 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   <PlusCircle className="h-4 w-4" />
                   <span>Transactions</span>
                 </Link>
                 <Link
                   to="/upload-receipt"
-                  className="flex items-center space-x-1 text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="flex items-center space-x-1 text-slate-800 dark:text-slate-300 hover:text-slate-955 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   <ScanLine className="h-4 w-4" />
                   <span>Scan Receipt</span>
                 </Link>
                 <div className="flex items-center space-x-2 pl-4 border-l border-slate-200 dark:border-slate-800">
-                  <span className="text-slate-500 dark:text-slate-400 text-sm flex items-center space-x-1">
+                  <span className="text-slate-700 dark:text-slate-400 text-sm flex items-center space-x-1 font-medium">
                     <UserIcon className="h-4 w-4 text-brand-500" />
                     <span className="max-w-[100px] truncate">{user.username}</span>
                   </span>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center space-x-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 px-3 py-1.5 rounded-md text-xs font-semibold border border-rose-500/20 transition-all cursor-pointer"
+                    className="flex items-center space-x-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-450 px-3 py-1.5 rounded-md text-xs font-semibold border border-rose-500/20 transition-all cursor-pointer"
                   >
                     <LogOut className="h-3.5 w-3.5" />
                     <span>Logout</span>
@@ -93,7 +93,7 @@ const Navbar = () => {
               <div className="flex items-center space-x-3">
                 <Link
                   to="/login"
-                  className="text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="text-slate-800 dark:text-slate-300 hover:text-slate-955 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   Login
                 </Link>
@@ -150,7 +150,7 @@ const Navbar = () => {
                 <Link
                   to="/"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center space-x-2 text-slate-700 dark:text-slate-250 hover:bg-slate-100 dark:hover:bg-slate-900 px-3 py-2.5 rounded-md text-base font-semibold transition-colors"
+                  className="flex items-center space-x-2 text-slate-800 dark:text-slate-250 hover:bg-slate-100 dark:hover:bg-slate-900 px-3 py-2.5 rounded-md text-base font-semibold transition-colors"
                 >
                   <LayoutDashboard className="h-5 w-5 text-brand-500" />
                   <span>Dashboard</span>
@@ -158,7 +158,7 @@ const Navbar = () => {
                 <Link
                   to="/transactions"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center space-x-2 text-slate-700 dark:text-slate-250 hover:bg-slate-100 dark:hover:bg-slate-900 px-3 py-2.5 rounded-md text-base font-semibold transition-colors"
+                  className="flex items-center space-x-2 text-slate-800 dark:text-slate-250 hover:bg-slate-100 dark:hover:bg-slate-900 px-3 py-2.5 rounded-md text-base font-semibold transition-colors"
                 >
                   <PlusCircle className="h-5 w-5 text-brand-500" />
                   <span>Transactions</span>
@@ -166,13 +166,13 @@ const Navbar = () => {
                 <Link
                   to="/upload-receipt"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center space-x-2 text-slate-700 dark:text-slate-250 hover:bg-slate-100 dark:hover:bg-slate-900 px-3 py-2.5 rounded-md text-base font-semibold transition-colors"
+                  className="flex items-center space-x-2 text-slate-800 dark:text-slate-250 hover:bg-slate-100 dark:hover:bg-slate-900 px-3 py-2.5 rounded-md text-base font-semibold transition-colors"
                 >
                   <ScanLine className="h-5 w-5 text-brand-500" />
                   <span>Scan Receipt</span>
                 </Link>
                 <div className="border-t border-slate-200 dark:border-slate-850 mt-2 pt-3 px-3 flex items-center justify-between">
-                  <span className="text-slate-500 dark:text-slate-400 text-sm flex items-center space-x-1">
+                  <span className="text-slate-705 dark:text-slate-400 text-sm flex items-center space-x-1 font-medium">
                     <UserIcon className="h-4 w-4 text-brand-500" />
                     <span className="truncate max-w-[120px]">{user.username}</span>
                   </span>
