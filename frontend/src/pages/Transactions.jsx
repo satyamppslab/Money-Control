@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { PlusCircle, Search, Trash2, Calendar, Tag, DollarSign, Filter } from 'lucide-react';
 
 const Transactions = () => {
-  const { formatAmount, currency, convertToBase } = useAuth();
+  const { formatAmount, currency, convertToBase, CURRENCY_SYMBOLS } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState('');
@@ -221,7 +221,9 @@ const Transactions = () => {
                 <div>
                   <label className="block text-slate-500 dark:text-slate-300 text-xs font-semibold mb-1.5 uppercase tracking-wider">Amount ({currency})</label>
                   <div className="relative">
-                    <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-450 dark:text-slate-500">
+                      {CURRENCY_SYMBOLS[currency] || '$'}
+                    </span>
                     <input
                       type="number"
                       required

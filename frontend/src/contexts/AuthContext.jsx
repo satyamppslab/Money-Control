@@ -26,18 +26,18 @@ const CURRENCY_RATES = {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [currency, setCurrencyState] = useState('USD');
+  const [currency, setCurrencyState] = useState('INR');
   const [theme, setThemeState] = useState('dark');
   
-  // Dynamic live exchange rates (with precise float values)
+  // Dynamic live exchange rates relative to base INR
   const [rates, setRates] = useState({
-    USD: 1.0,
-    EUR: 0.92,
-    GBP: 0.78,
-    INR: 95.0, // fallback rate
-    JPY: 155.0,
-    CAD: 1.36,
-    AUD: 1.50,
+    INR: 1.0,
+    USD: 0.0105, // 1 INR = 0.0105 USD (Fallback)
+    EUR: 0.0097,
+    GBP: 0.0082,
+    JPY: 1.63,
+    CAD: 0.014,
+    AUD: 0.016,
   });
 
   useEffect(() => {
@@ -45,10 +45,8 @@ export const AuthProvider = ({ children }) => {
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
-    const storedCurrency = localStorage.getItem('currency');
-    if (storedCurrency) {
-      setCurrencyState(storedCurrency);
-    }
+    const storedCurrency = localStorage.getItem('currency') || 'INR';
+    setCurrencyState(storedCurrency);
     const storedTheme = localStorage.getItem('theme') || 'dark';
     setThemeState(storedTheme);
     if (storedTheme === 'dark') {
@@ -57,23 +55,23 @@ export const AuthProvider = ({ children }) => {
       document.documentElement.classList.remove('dark');
     }
 
-    // Fetch daily live rates relative to base USD
+    // Fetch daily live rates relative to base INR
     const fetchLiveRates = async () => {
       try {
-        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        const res = await fetch('https://open.er-api.com/v6/latest/INR');
         const data = await res.json();
         if (data && data.rates) {
           setRates(prev => ({
             ...prev,
-            USD: 1.0,
+            INR: 1.0,
+            USD: parseFloat(data.rates.USD) || prev.USD,
             EUR: parseFloat(data.rates.EUR) || prev.EUR,
             GBP: parseFloat(data.rates.GBP) || prev.GBP,
-            INR: parseFloat(data.rates.INR) || prev.INR,
             JPY: parseFloat(data.rates.JPY) || prev.JPY,
             CAD: parseFloat(data.rates.CAD) || prev.CAD,
             AUD: parseFloat(data.rates.AUD) || prev.AUD,
           }));
-          console.log('Live daily exchange rates loaded successfully.', data.rates);
+          console.log('Live daily exchange rates (INR base) loaded successfully.', data.rates);
         }
       } catch (err) {
         console.warn('Failed to fetch live exchange rates, using local fallback rates.', err);
