@@ -7,7 +7,6 @@ const Transactions = () => {
   const { formatAmount, currency, convertToBase } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState('expense');
   const [category, setCategory] = useState('Food');
@@ -45,11 +44,11 @@ const Transactions = () => {
 
   const handleAddTransaction = async (e) => {
     e.preventDefault();
-    if (!title || !amount) return;
+    if (!amount) return;
 
     try {
       await api.post('/transactions', {
-        title,
+        title: category, // Default title to selected category
         amount: convertToBase(amount, currency),
         type,
         category,
@@ -58,7 +57,6 @@ const Transactions = () => {
       });
 
       // Clear Form
-      setTitle('');
       setAmount('');
       setDescription('');
       setDate(new Date().toISOString().split('T')[0]);
@@ -101,7 +99,7 @@ const Transactions = () => {
           cursor: pointer;
         }
         .dark input[type="date"] {
-          color: #ffffff !important;
+          color:  #ffffff !important;
         }
       `}</style>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -190,16 +188,33 @@ const Transactions = () => {
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Add Transaction</h2>
 
             <form onSubmit={handleAddTransaction} className="space-y-4">
-              <div>
-                <label className="block text-slate-500 dark:text-slate-300 text-xs font-semibold mb-1.5 uppercase tracking-wider">Title</label>
-                <input
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Grocery, Salary, etc."
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2 px-3 text-slate-850 dark:text-white placeholder-slate-450 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm transition-colors"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-500 dark:text-slate-300 text-xs font-semibold mb-1.5 uppercase tracking-wider">Category</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2 px-3 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm transition-colors cursor-pointer"
+                  >
+                    {categories.map((c) => (
+                      <option key={c} value={c} className="bg-white dark:bg-slate-950 text-slate-850 dark:text-white">
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 dark:text-slate-300 text-xs font-semibold mb-1.5 uppercase tracking-wider">Type</label>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2 px-3 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm transition-colors cursor-pointer"
+                  >
+                    <option value="expense">Expense</option>
+                    <option value="income">Income</option>
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -218,35 +233,6 @@ const Transactions = () => {
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2 pl-8 pr-3 text-slate-850 dark:text-white placeholder-slate-450 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm transition-colors"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-500 dark:text-slate-300 text-xs font-semibold mb-1.5 uppercase tracking-wider">Type</label>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2 px-3 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm transition-colors cursor-pointer"
-                  >
-                    <option value="expense">Expense</option>
-                    <option value="income">Income</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-slate-500 dark:text-slate-300 text-xs font-semibold mb-1.5 uppercase tracking-wider">Category</label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2 px-3 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm transition-colors cursor-pointer"
-                  >
-                    {categories.map((c) => (
-                      <option key={c} value={c} className="bg-white dark:bg-slate-950 text-slate-850 dark:text-white">
-                        {c}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 <div>
