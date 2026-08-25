@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import { useAuth } from '../contexts/AuthContext';
-import { DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp, Calendar, Tag, Trash2, ArrowRight, PieChart, Activity, ChevronLeft, ChevronRight, ListPlus } from 'lucide-react';
+import { DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp, Calendar, Tag, Trash2, ArrowRight, PieChart, Activity, ChevronLeft, ChevronRight, ListPlus, FileDown } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
 
 const Dashboard = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { formatAmount } = useAuth();
+  const { formatAmount, currency, CURRENCY_SYMBOLS } = useAuth();
   
   // Date state for month selection
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -129,6 +130,280 @@ const Dashboard = () => {
   const incomeStrokeOffset = circumference - (incomePercentage / 100) * circumference;
   const expenseStrokeOffset = circumference - (expensePercentage / 100) * circumference;
 
+  const handleDownloadStatement = () => {
+    const firstDay = new Date(selectedYear, selectedMonth, 1);
+    const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+    
+    const formatPdfDate = (dateStr) => {
+      const d = new Date(dateStr);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = d.toLocaleString('default', { month: 'short' });
+      const year = d.getFullYear();
+      return `${day} ${month} ${year}`;
+    };
+
+    const startDateStr = formatPdfDate(firstDay);
+    const endDateStr = formatPdfDate(lastDay);
+    const monthName = selectedDate.toLocaleString('default', { month: 'long' });
+
+    // Calculate opening balance (all transactions before first day of selected month)
+    let openingBal = 0;
+    transactions.forEach((t) => {
+      const tDate = new Date(t.date);
+      if (tDate < firstDay) {
+        openingBal += (t.type === 'income' ? t.amount : -t.amount);
+      }
+    });
+    const closingBal = openingBal + income - expense;
+
+    // Filter and sort transactions
+    const incomeTx = monthlyTransactions.filter(t => t.type === 'income').sort((a, b) => new Date(a.date) - new Date(b.date));
+    const sortedMonthlyTx = [...monthlyTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Expense breakdowns
+    const expenseTx = monthlyTransactions.filter(t => t.type === 'expense');
+    const categoriesStats = {};
+    expenseTx.forEach(t => {
+      if (!categoriesStats[t.category]) {
+        categoriesStats[t.category] = { count: 0, amount: 0 };
+      }
+      categoriesStats[t.category].count += 1;
+      categoriesStats[t.category].amount += t.amount;
+    });
+
+    const categoryList = Object.entries(categoriesStats).map(([name, data]) => ({
+      name,
+      count: data.count,
+      amount: data.amount,
+      percentage: expense > 0 ? ((data.amount / expense) * 100).toFixed(1) : '0.0'
+    })).sort((a, b) => b.amount - a.amount);
+
+    const totalExpenseCount = expenseTx.length;
+    const currencySymbol = CURRENCY_SYMBOLS[currency] || '₹';
+    const formatVal = (val) => `${currencySymbol}${parseFloat(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const opt = {
+      margin:       [10, 15, 10, 15],
+      filename:     `Financial_Statement_${monthName}_${selectedYear}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    const container = document.createElement('div');
+    container.style.fontFamily = "'Inter', sans-serif";
+    container.style.color = "#1e293b";
+    container.style.backgroundColor = "#ffffff";
+    container.style.fontSize = "11px";
+    container.style.lineHeight = "1.5";
+
+    container.innerHTML = `
+      <!-- PAGE 1 -->
+      <div style="padding: 20px 0; min-height: 297mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <!-- Header -->
+          <div style="margin-bottom: 25px;">
+            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">YOUR FINANCIAL TRACKER</h1>
+            <h2 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 4px 0 0 0;">Monthly Financial Statement</h2>
+            <p style="font-size: 12px; font-weight: 600; color: #64748b; margin: 8px 0 0 0;">${monthName} ${selectedYear}</p>
+            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0;">Statement period: ${startDateStr} – ${endDateStr}</p>
+          </div>
+
+          <!-- Summary Box -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #cbd5e1;">
+            <tr style="background-color: #f8fafc; border-bottom: 1px solid #cbd5e1;">
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Opening Balance</th>
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Total Income</th>
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Total Expenses</th>
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; width: 25%;">Closing Balance</th>
+            </tr>
+            <tr>
+              <td style="padding: 14px 10px; font-size: 13px; font-weight: 700; color: #0f172a; border-right: 1px solid #cbd5e1;">${formatVal(openingBal)}</td>
+              <td style="padding: 14px 10px; font-size: 13px; font-weight: 700; color: #10b981; border-right: 1px solid #cbd5e1;">+${formatVal(income)}</td>
+              <td style="padding: 14px 10px; font-size: 13px; font-weight: 700; color: #ef4444; border-right: 1px solid #cbd5e1;">-${formatVal(expense)}</td>
+              <td style="padding: 14px 10px; font-size: 13px; font-weight: 700; color: ${closingBal >= 0 ? '#10b981' : '#ef4444'};">${formatVal(closingBal)}</td>
+            </tr>
+          </table>
+
+          <!-- Income Section -->
+          <h3 style="font-size: 13px; font-weight: 700; border-bottom: 2px solid #0f172a; padding-bottom: 4px; margin: 20px 0 10px 0; text-transform: uppercase;">Income</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+            <thead>
+              <tr style="background-color: #f8fafc; border-bottom: 1px solid #cbd5e1;">
+                <th style="padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #64748b;">Date</th>
+                <th style="padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #64748b;">Description</th>
+                <th style="padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #64748b;">Category</th>
+                <th style="padding: 8px 10px; text-align: right; font-size: 9px; text-transform: uppercase; color: #64748b;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${incomeTx.length === 0 ? `
+                <tr><td colspan="4" style="padding: 15px; text-align: center; color: #94a3b8; font-style: italic;">No income transactions recorded</td></tr>
+              ` : incomeTx.map(t => `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 8px 10px; color: #334155;">${formatPdfDate(t.date)}</td>
+                  <td style="padding: 8px 10px; color: #334155; font-weight: 500;">${t.title}</td>
+                  <td style="padding: 8px 10px; color: #475569;">${t.category}</td>
+                  <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #10b981;">+${formatVal(t.amount)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <!-- Expense Breakdown Section -->
+          <h3 style="font-size: 13px; font-weight: 700; border-bottom: 2px solid #ef4444; padding-bottom: 4px; margin: 30px 0 10px 0; text-transform: uppercase;">Expense Breakdown</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background-color: #f8fafc; border-bottom: 1px solid #cbd5e1;">
+                <th style="padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #64748b;">Category</th>
+                <th style="padding: 8px 10px; text-align: center; font-size: 9px; text-transform: uppercase; color: #64748b; width: 20%;">Transactions</th>
+                <th style="padding: 8px 10px; text-align: right; font-size: 9px; text-transform: uppercase; color: #64748b; width: 25%;">Amount</th>
+                <th style="padding: 8px 10px; text-align: right; font-size: 9px; text-transform: uppercase; color: #64748b; width: 20%;">% of Expenses</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${categoryList.length === 0 ? `
+                <tr><td colspan="4" style="padding: 15px; text-align: center; color: #94a3b8; font-style: italic;">No expense transactions recorded</td></tr>
+              ` : categoryList.map(c => `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 8px 10px; font-weight: 600; color: #334155;">${c.name}</td>
+                  <td style="padding: 8px 10px; text-align: center; color: #475569;">${c.count}</td>
+                  <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #ef4444;">-${formatVal(c.amount)}</td>
+                  <td style="padding: 8px 10px; text-align: right; font-weight: 500; color: #475569;">${c.percentage}%</td>
+                </tr>
+              `).join('')}
+              <tr style="border-top: 2px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">
+                <td style="padding: 10px; color: #0f172a;">Total</td>
+                <td style="padding: 10px; text-align: center; color: #0f172a;">${totalExpenseCount}</td>
+                <td style="padding: 10px; text-align: right; color: #ef4444;">-${formatVal(expense)}</td>
+                <td style="padding: 10px; text-align: right; color: #0f172a;">100.0%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="font-size: 9px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 10px; margin-top: 30px;">
+          Confidential — Personal Financial Statement | Page 1
+        </div>
+      </div>
+
+      <div class="page-break" style="page-break-before: always;"></div>
+
+      <!-- PAGE 2 -->
+      <div style="padding: 20px 0; min-height: 297mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <!-- Header -->
+          <div style="margin-bottom: 25px;">
+            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Transaction Details</h1>
+            <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">All ${monthlyTransactions.length} transactions included in this statement.</p>
+          </div>
+
+          <!-- Complete Ledger Table -->
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+                <th style="padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #64748b; width: 15%;">Date</th>
+                <th style="padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #64748b; width: 35%;">Description</th>
+                <th style="padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #64748b; width: 20%;">Category</th>
+                <th style="padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #64748b; width: 15%;">Type</th>
+                <th style="padding: 8px 10px; text-align: right; font-size: 9px; text-transform: uppercase; color: #64748b; width: 15%;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedMonthlyTx.length === 0 ? `
+                <tr><td colspan="5" style="padding: 15px; text-align: center; color: #94a3b8; font-style: italic;">No transactions recorded this month</td></tr>
+              ` : sortedMonthlyTx.map(t => `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 8px 10px; color: #475569;">${formatPdfDate(t.date)}</td>
+                  <td style="padding: 8px 10px; color: #0f172a; font-weight: 500;">${t.title}</td>
+                  <td style="padding: 8px 10px; color: #475569;">${t.category}</td>
+                  <td style="padding: 8px 10px; text-transform: capitalize; font-weight: 600; color: ${t.type === 'income' ? '#10b981' : '#f59e0b'};">${t.type}</td>
+                  <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: ${t.type === 'income' ? '#10b981' : '#ef4444'};">
+                    ${t.type === 'income' ? '+' : '-'}${formatVal(t.amount)}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="font-size: 9px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 10px; margin-top: 30px;">
+          Confidential — Personal Financial Statement | Page 2
+        </div>
+      </div>
+
+      <div class="page-break" style="page-break-before: always;"></div>
+
+      <!-- PAGE 3 -->
+      <div style="padding: 20px 0; min-height: 297mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <!-- Summary Header -->
+          <div style="margin-bottom: 25px;">
+            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Summary Overview</h1>
+          </div>
+
+          <!-- Totals list -->
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #cbd5e1; font-size: 13px;">
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="padding: 16px 20px; font-weight: 600; color: #475569;">Total Income</td>
+              <td style="padding: 16px 20px; text-align: right; font-weight: 700; color: #10b981;">+${formatVal(income)}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="padding: 16px 20px; font-weight: 600; color: #475569;">Total Expenses</td>
+              <td style="padding: 16px 20px; text-align: right; font-weight: 700; color: #ef4444;">-${formatVal(expense)}</td>
+            </tr>
+            <tr style="background-color: #f8fafc; font-weight: 850; font-size: 15px;">
+              <td style="padding: 20px; color: #0f172a;">Net Balance</td>
+              <td style="padding: 20px; text-align: right; color: ${balance >= 0 ? '#10b981' : '#ef4444'};">
+                ${balance >= 0 ? '+' : ''}${formatVal(balance)}
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div style="font-size: 9px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 10px; margin-top: 30px;">
+          Confidential — Personal Financial Statement | Page 3
+        </div>
+      </div>
+
+      <div class="page-break" style="page-break-before: always;"></div>
+
+      <!-- PAGE 4 -->
+      <div style="padding: 20px 0; min-height: 297mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <!-- Header -->
+          <div style="margin-bottom: 25px;">
+            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Monthly Analysis</h1>
+            <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">Category-wise view of your spending</p>
+          </div>
+
+          <!-- Spending List -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 40px;">
+            <tbody>
+              ${categoryList.map(c => `
+                <tr style="border-bottom: 1px solid #f1f5f9; font-size: 12px;">
+                  <td style="padding: 14px 10px; font-weight: 600; color: #334155;">${c.name}</td>
+                  <td style="padding: 14px 10px; text-align: right; font-weight: 700; color: #0f172a;">${formatVal(c.amount)}</td>
+                  <td style="padding: 14px 10px; text-align: right; color: #64748b; font-weight: 500; width: 20%;">${c.percentage}%</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <!-- Financial Summary Box -->
+          <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 20px; margin-top: 20px; line-height: 1.6;">
+            <p style="margin: 0; font-size: 12px; color: #334155;">
+              <strong>Financial Summary:</strong> You received <strong>${formatVal(income)}</strong> in income and recorded <strong>${formatVal(expense)}</strong> in expenses, resulting in a net balance of <strong style="color: ${balance >= 0 ? '#10b981' : '#ef4444'};">${formatVal(balance)}</strong> for the transactions included in this statement.
+            </p>
+          </div>
+        </div>
+        <div style="font-size: 9px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 10px; margin-top: 30px;">
+          Confidential — Personal Financial Statement | Page 4
+        </div>
+      </div>
+    `;
+
+    // Render PDF using html2pdf
+    html2pdf().from(container).set(opt).save();
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Welcome header with dynamic Month/Year switcher */}
@@ -141,24 +416,35 @@ const Dashboard = () => {
           <p className="text-slate-500 dark:text-slate-400 mt-1">Real-time breakdown of your income and expenditures.</p>
         </div>
 
-        {/* Dynamic Month Navigation Controls */}
-        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 px-4 py-2 rounded-xl text-slate-800 dark:text-white shadow-inner transition-colors duration-200">
+        {/* Dynamic Month Navigation & Statement Controls */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 px-4 py-2 rounded-xl text-slate-800 dark:text-white shadow-inner transition-colors duration-200">
+            <button
+              onClick={handlePrevMonth}
+              className="hover:text-brand-500 transition-colors p-1 flex items-center justify-center cursor-pointer"
+              title="Previous Month"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="text-sm font-extrabold tracking-wider uppercase min-w-[140px] text-center select-none text-slate-700 dark:text-slate-200">
+              {selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </span>
+            <button
+              onClick={handleNextMonth}
+              className="hover:text-brand-500 transition-colors p-1 flex items-center justify-center cursor-pointer"
+              title="Next Month"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+
           <button
-            onClick={handlePrevMonth}
-            className="hover:text-brand-500 transition-colors p-1 flex items-center justify-center cursor-pointer"
-            title="Previous Month"
+            onClick={handleDownloadStatement}
+            className="bg-brand-500 hover:bg-brand-600 text-slate-950 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-brand-500/10 hover:shadow-brand-500/20 active:translate-y-0.5 border border-brand-500/10"
+            title="Download Full Monthly Statement PDF"
           >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <span className="text-sm font-extrabold tracking-wider uppercase min-w-[140px] text-center select-none text-slate-700 dark:text-slate-200">
-            {selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-          </span>
-          <button
-            onClick={handleNextMonth}
-            className="hover:text-brand-500 transition-colors p-1 flex items-center justify-center cursor-pointer"
-            title="Next Month"
-          >
-            <ChevronRight className="h-5 w-5" />
+            <FileDown className="h-4.5 w-4.5" />
+            <span className="hidden sm:inline">Statement</span>
           </button>
         </div>
       </div>
