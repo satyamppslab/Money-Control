@@ -132,12 +132,12 @@ const UploadReceipt = () => {
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Receipt Scanner</h1>
-              <p className="text-slate-500 dark:text-slate-400 text-xs">Instantly scan receipts and add expenses with Gemini AI</p>
+              <p className="text-slate-500 dark:text-slate-400 text-xs">Instantly scan receipts and add expenses with AI OCR</p>
             </div>
           </div>
           <div className="inline-flex items-center gap-1.5 bg-brand-500/10 border border-brand-500/20 text-brand-500 dark:text-brand-400 px-3 py-1 rounded-full text-xs font-semibold animate-pulse">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>Gemini AI Engine</span>
+            <span>AI OCR Engine</span>
           </div>
         </div>
 
@@ -184,7 +184,7 @@ const UploadReceipt = () => {
                 {loading ? (
                   <>
                     <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                    <span>Extracting details with Gemini AI...</span>
+                    <span>Extracting details with AI OCR...</span>
                   </>
                 ) : (
                   <>
