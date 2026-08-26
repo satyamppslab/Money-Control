@@ -200,23 +200,48 @@ const Dashboard = () => {
 
     container.innerHTML = `
       <!-- PAGE 1 -->
-      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-        <div>
+      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; min-height: 270mm; position: relative; overflow: hidden;">
+        <!-- Watermark -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); width: 250px; height: 250px; opacity: 0.035; pointer-events: none; z-index: 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 100%; height: 100%;">
+            <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+            <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+            <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+          </svg>
+        </div>
+
+        <div style="position: relative; z-index: 1;">
+          <!-- Brand Logo Header Table -->
+          <table style="border-collapse: collapse; margin-bottom: 20px; border: none; background: transparent;">
+            <tr style="border: none; background: transparent;">
+              <td style="padding: 0; vertical-align: middle; border: none; line-height: 26px;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 26px; height: 26px; display: inline-block; vertical-align: middle; margin: 0;">
+                  <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+                  <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+                  <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+                </svg>
+              </td>
+              <td style="padding: 0 0 0 8px; vertical-align: middle; font-size: 22px; font-weight: 900; color: #10b981; line-height: 26px; border: none; font-family: Arial, sans-serif; display: inline-block;">
+                MoneyControl
+              </td>
+            </tr>
+          </table>
+
           <!-- Header -->
           <div style="margin-bottom: 25px;">
-            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">YOUR&nbsp;FINANCIAL&nbsp;TRACKER</h1>
-            <h2 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 4px 0 0 0;">Monthly&nbsp;Financial&nbsp;Statement</h2>
-            <p style="font-size: 12px; font-weight: 600; color: #64748b; margin: 8px 0 0 0;">${monthName}&nbsp;${selectedYear}</p>
-            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0;">Statement&nbsp;period:&nbsp;${startDateStr}&nbsp;–&nbsp;${endDateStr}</p>
+            <h1 style="font-size: 20px; font-weight: 850; color: #000000; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">YOUR FINANCIAL TRACKER</h1>
+            <h2 style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 4px 0 0 0;">Monthly Financial Statement</h2>
+            <p style="font-size: 12px; font-weight: 600; color: #64748b; margin: 8px 0 0 0;">${monthName} ${selectedYear}</p>
+            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0;">Statement period: ${startDateStr} – ${endDateStr}</p>
           </div>
 
           <!-- Summary Box -->
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #cbd5e1;">
             <tr style="background-color: #f8fafc; border-bottom: 1px solid #cbd5e1;">
-              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Opening&nbsp;Balance</th>
-              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Total&nbsp;Income</th>
-              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Total&nbsp;Expenses</th>
-              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; width: 25%;">Closing&nbsp;Balance</th>
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Opening Balance</th>
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Total Income</th>
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Total Expenses</th>
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; width: 25%;">Closing Balance</th>
             </tr>
             <tr>
               <td style="padding: 14px 10px; font-size: 13px; font-weight: 700; color: #0f172a; border-right: 1px solid #cbd5e1;">${formatVal(openingBal)}</td>
@@ -290,11 +315,20 @@ const Dashboard = () => {
       <div class="page-break" style="page-break-before: always;"></div>
 
       <!-- PAGE 2 -->
-      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-        <div>
+      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; min-height: 270mm; position: relative; overflow: hidden;">
+        <!-- Watermark -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); width: 250px; height: 250px; opacity: 0.035; pointer-events: none; z-index: 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 100%; height: 100%;">
+            <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+            <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+            <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+          </svg>
+        </div>
+
+        <div style="position: relative; z-index: 1;">
           <!-- Header -->
           <div style="margin-bottom: 25px;">
-            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Transaction&nbsp;Details</h1>
+            <h1 style="font-size: 24px; font-weight: 850; color: #000000; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Transaction Details</h1>
             <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">All ${monthlyTransactions.length} transactions included in this statement.</p>
           </div>
 
@@ -334,11 +368,20 @@ const Dashboard = () => {
       <div class="page-break" style="page-break-before: always;"></div>
 
       <!-- PAGE 3 -->
-      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-        <div>
+      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; min-height: 270mm; position: relative; overflow: hidden;">
+        <!-- Watermark -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); width: 250px; height: 250px; opacity: 0.035; pointer-events: none; z-index: 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 100%; height: 100%;">
+            <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+            <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+            <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+          </svg>
+        </div>
+
+        <div style="position: relative; z-index: 1;">
           <!-- Summary Header -->
           <div style="margin-bottom: 25px;">
-            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Summary&nbsp;Overview</h1>
+            <h1 style="font-size: 24px; font-weight: 850; color: #000000; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Summary Overview</h1>
           </div>
 
           <!-- Totals list -->
@@ -367,11 +410,20 @@ const Dashboard = () => {
       <div class="page-break" style="page-break-before: always;"></div>
 
       <!-- PAGE 4 -->
-      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-        <div>
+      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; min-height: 270mm; position: relative; overflow: hidden;">
+        <!-- Watermark -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); width: 250px; height: 250px; opacity: 0.035; pointer-events: none; z-index: 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 100%; height: 100%;">
+            <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+            <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+            <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+          </svg>
+        </div>
+
+        <div style="position: relative; z-index: 1;">
           <!-- Header -->
           <div style="margin-bottom: 25px;">
-            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Monthly&nbsp;Analysis</h1>
+            <h1 style="font-size: 24px; font-weight: 850; color: #000000; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Monthly Analysis</h1>
             <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">Category-wise view of your spending</p>
           </div>
 
