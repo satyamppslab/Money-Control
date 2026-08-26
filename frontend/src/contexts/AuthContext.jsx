@@ -123,8 +123,13 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  const register = async (username, email, password) => {
-    const response = await api.post('/auth/register', { username, email, password });
+  const sendOtp = async (email, phone) => {
+    const response = await api.post('/auth/send-otp', { email, phone });
+    return response.data;
+  };
+
+  const register = async (username, email, password, phone, otp) => {
+    const response = await api.post('/auth/register', { username, email, password, phone, otp });
     setUser(response.data);
     localStorage.setItem('user', JSON.stringify(response.data));
     return response.data;
@@ -136,7 +141,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, currency, setCurrency, formatAmount, CURRENCY_SYMBOLS, theme, toggleTheme, convertToBase, convertFromBase, rates }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, currency, setCurrency, formatAmount, CURRENCY_SYMBOLS, theme, toggleTheme, convertToBase, convertFromBase, rates, sendOtp }}>
       {!loading && children}
     </AuthContext.Provider>
   );
