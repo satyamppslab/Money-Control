@@ -37,6 +37,7 @@ const Register = () => {
   // OTP Verification States
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
+  const [demoOtp, setDemoOtp] = useState('');
   const [toastMsg, setToastMsg] = useState('');
 
   const { register, sendOtp, currency } = useAuth();
@@ -89,7 +90,12 @@ const Register = () => {
       const data = await sendOtp(email, fullPhoneNumber);
       if (data.success) {
         setIsOtpSent(true);
-        setToastMsg(data.mockOtp ? 'Verification code sent! (Check backend logs for code)' : 'Verification code sent to your mobile number!');
+        if (data.mockOtp) {
+          setDemoOtp(data.mockOtp);
+          setToastMsg(`Verification Code Generated: ${data.mockOtp}`);
+        } else {
+          setToastMsg('Verification code sent to your mobile number!');
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send verification code. Try again.');
@@ -131,7 +137,12 @@ const Register = () => {
     try {
       const data = await sendOtp(email, fullPhoneNumber);
       if (data.success) {
-        setToastMsg(data.mockOtp ? 'New verification code sent! (Check backend logs for code)' : 'New verification code sent to your mobile number!');
+        if (data.mockOtp) {
+          setDemoOtp(data.mockOtp);
+          setToastMsg(`New Verification Code: ${data.mockOtp}`);
+        } else {
+          setToastMsg('New verification code sent to your mobile number!');
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to resend verification code.');
@@ -166,6 +177,22 @@ const Register = () => {
         {toastMsg && (
           <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-3 rounded-lg text-sm mb-6 font-semibold animate-pulse text-center">
             {toastMsg}
+          </div>
+        )}
+
+        {demoOtp && isOtpSent && (
+          <div className="bg-brand-500/10 border border-brand-500/30 text-brand-600 dark:text-brand-400 p-4 rounded-xl text-sm mb-6 flex flex-col items-center gap-2">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Your Verification Code:</span>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-2xl font-black tracking-widest text-brand-500">{demoOtp}</span>
+              <button
+                type="button"
+                onClick={() => setOtp(demoOtp)}
+                className="text-xs bg-brand-500 hover:bg-brand-600 text-slate-950 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer shadow-sm hover:shadow"
+              >
+                Auto-fill
+              </button>
+            </div>
           </div>
         )}
 

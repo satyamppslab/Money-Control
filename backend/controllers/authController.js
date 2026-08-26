@@ -1,9 +1,7 @@
 const User = require('../models/User');
+const Otp = require('../models/Otp');
 const jwt = require('jsonwebtoken');
 const twilio = require('twilio');
-
-// In-memory OTP storage
-const otpStore = {};
 
 // Generate JWT token
 const generateToken = (id) => {
@@ -29,7 +27,7 @@ const sendSMS = async (to, body) => {
       return false;
     }
   } else {
-    console.warn(`[SMS SYSTEM] Twilio is not configured. Falling back to console logs.`);
+    console.warn(`[SMS SYSTEM] Twilio is not configured. Falling back to on-screen / mock mode.`);
     return false;
   }
 };
@@ -44,19 +42,17 @@ const sendOtp = async (req, res) => {
     const userExists = await User.findOne({ email });
 
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'User already exists with this email' });
     }
 
     // Generate random 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store OTP in memory (valid for 5 minutes)
-    otpStore[phone] = {
-      otp,
-      expiresAt: Date.now() + 5 * 60 * 1000
-    };
+    // Persist OTP in MongoDB (persistent across serverless instances)
+    await Otp.deleteMany({ phone });
+    await Otp.create({ phone, email, otp });
 
-    // Send SMS (real via Twilio or fallback mock to console log)
+    // Send SMS (real via Twilio or fallback mock)
     const smsBody = `Your MoneyControl verification code is: ${otp}`;
     const sentReal = await sendSMS(phone, smsBody);
 
@@ -67,11 +63,12 @@ const sendOtp = async (req, res) => {
     res.status(200).json({
       success: true,
       message: sentReal 
-        ? 'Verification OTP sent successfully to your mobile number.' 
-        : 'Mock verification OTP printed to server console logs.',
-      mockOtp: sentReal ? undefined : otp // only return mockOtp if real SMS was not sent
+        ? 'Verification code sent to your mobile number.' 
+        : `Verification code: ${otp}`,
+      mockOtp: sentReal ? undefined : otp,
     });
   } catch (error) {
+    console.error('[OTP SYSTEM] Error sending OTP:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -86,17 +83,17 @@ const registerUser = async (req, res) => {
     const userExists = await User.findOne({ email });
 
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    // Validate OTP
-    const record = otpStore[phone];
-    if (!record || record.otp !== otp || record.expiresAt < Date.now()) {
-      return res.status(400).json({ message: 'Invalid or expired verification OTP.' });
+    // Validate OTP against MongoDB database
+    const record = await Otp.findOne({ phone, otp });
+    if (!record) {
+      return res.status(400).json({ message: 'Invalid or expired verification code.' });
     }
 
-    // Clear OTP record
-    delete otpStore[phone];
+    // Delete used OTP from MongoDB
+    await Otp.deleteMany({ phone });
 
     const user = await User.create({
       username,
@@ -117,6 +114,7 @@ const registerUser = async (req, res) => {
       res.status(400).json({ message: 'Invalid user data' });
     }
   } catch (error) {
+    console.error('[AUTH SYSTEM] Registration error:', error);
     res.status(500).json({ message: error.message });
   }
 };
