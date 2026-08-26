@@ -187,11 +187,12 @@ const Dashboard = () => {
       filename:     `Financial_Statement_${monthName}_${selectedYear}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     const container = document.createElement('div');
-    container.style.fontFamily = "'Inter', sans-serif";
+    container.style.fontFamily = "Arial, Helvetica, sans-serif";
     container.style.color = "#1e293b";
     container.style.backgroundColor = "#ffffff";
     container.style.fontSize = "11px";
@@ -199,23 +200,23 @@ const Dashboard = () => {
 
     container.innerHTML = `
       <!-- PAGE 1 -->
-      <div style="padding: 20px 0; min-height: 297mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
         <div>
           <!-- Header -->
           <div style="margin-bottom: 25px;">
-            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">YOUR FINANCIAL TRACKER</h1>
-            <h2 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 4px 0 0 0;">Monthly Financial Statement</h2>
-            <p style="font-size: 12px; font-weight: 600; color: #64748b; margin: 8px 0 0 0;">${monthName} ${selectedYear}</p>
-            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0;">Statement period: ${startDateStr} – ${endDateStr}</p>
+            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">YOUR&nbsp;FINANCIAL&nbsp;TRACKER</h1>
+            <h2 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 4px 0 0 0;">Monthly&nbsp;Financial&nbsp;Statement</h2>
+            <p style="font-size: 12px; font-weight: 600; color: #64748b; margin: 8px 0 0 0;">${monthName}&nbsp;${selectedYear}</p>
+            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0;">Statement&nbsp;period:&nbsp;${startDateStr}&nbsp;–&nbsp;${endDateStr}</p>
           </div>
 
           <!-- Summary Box -->
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #cbd5e1;">
             <tr style="background-color: #f8fafc; border-bottom: 1px solid #cbd5e1;">
-              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Opening Balance</th>
-              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Total Income</th>
-              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Total Expenses</th>
-              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; width: 25%;">Closing Balance</th>
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Opening&nbsp;Balance</th>
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Total&nbsp;Income</th>
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; border-right: 1px solid #cbd5e1; width: 25%;">Total&nbsp;Expenses</th>
+              <th style="padding: 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #475569; width: 25%;">Closing&nbsp;Balance</th>
             </tr>
             <tr>
               <td style="padding: 14px 10px; font-size: 13px; font-weight: 700; color: #0f172a; border-right: 1px solid #cbd5e1;">${formatVal(openingBal)}</td>
@@ -240,7 +241,7 @@ const Dashboard = () => {
               ${incomeTx.length === 0 ? `
                 <tr><td colspan="4" style="padding: 15px; text-align: center; color: #94a3b8; font-style: italic;">No income transactions recorded</td></tr>
               ` : incomeTx.map(t => `
-                <tr style="border-bottom: 1px solid #f1f5f9;">
+                <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; break-inside: avoid;">
                   <td style="padding: 8px 10px; color: #334155;">${formatPdfDate(t.date)}</td>
                   <td style="padding: 8px 10px; color: #334155; font-weight: 500;">${t.title}</td>
                   <td style="padding: 8px 10px; color: #475569;">${t.category}</td>
@@ -265,7 +266,7 @@ const Dashboard = () => {
               ${categoryList.length === 0 ? `
                 <tr><td colspan="4" style="padding: 15px; text-align: center; color: #94a3b8; font-style: italic;">No expense transactions recorded</td></tr>
               ` : categoryList.map(c => `
-                <tr style="border-bottom: 1px solid #f1f5f9;">
+                <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; break-inside: avoid;">
                   <td style="padding: 8px 10px; font-weight: 600; color: #334155;">${c.name}</td>
                   <td style="padding: 8px 10px; text-align: center; color: #475569;">${c.count}</td>
                   <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #ef4444;">-${formatVal(c.amount)}</td>
@@ -282,18 +283,18 @@ const Dashboard = () => {
           </table>
         </div>
         <div style="font-size: 9px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 10px; margin-top: 30px;">
-          Confidential — Personal Financial Statement | Page 1
+          Confidential&nbsp;—&nbsp;Personal&nbsp;Financial&nbsp;Statement&nbsp;|&nbsp;Page&nbsp;1
         </div>
       </div>
 
       <div class="page-break" style="page-break-before: always;"></div>
 
       <!-- PAGE 2 -->
-      <div style="padding: 20px 0; min-height: 297mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
         <div>
           <!-- Header -->
           <div style="margin-bottom: 25px;">
-            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Transaction Details</h1>
+            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Transaction&nbsp;Details</h1>
             <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">All ${monthlyTransactions.length} transactions included in this statement.</p>
           </div>
 
@@ -312,7 +313,7 @@ const Dashboard = () => {
               ${sortedMonthlyTx.length === 0 ? `
                 <tr><td colspan="5" style="padding: 15px; text-align: center; color: #94a3b8; font-style: italic;">No transactions recorded this month</td></tr>
               ` : sortedMonthlyTx.map(t => `
-                <tr style="border-bottom: 1px solid #f1f5f9;">
+                <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; break-inside: avoid;">
                   <td style="padding: 8px 10px; color: #475569;">${formatPdfDate(t.date)}</td>
                   <td style="padding: 8px 10px; color: #0f172a; font-weight: 500;">${t.title}</td>
                   <td style="padding: 8px 10px; color: #475569;">${t.category}</td>
@@ -326,18 +327,18 @@ const Dashboard = () => {
           </table>
         </div>
         <div style="font-size: 9px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 10px; margin-top: 30px;">
-          Confidential — Personal Financial Statement | Page 2
+          Confidential&nbsp;—&nbsp;Personal&nbsp;Financial&nbsp;Statement&nbsp;|&nbsp;Page&nbsp;2
         </div>
       </div>
 
       <div class="page-break" style="page-break-before: always;"></div>
 
       <!-- PAGE 3 -->
-      <div style="padding: 20px 0; min-height: 297mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
         <div>
           <!-- Summary Header -->
           <div style="margin-bottom: 25px;">
-            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Summary Overview</h1>
+            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Summary&nbsp;Overview</h1>
           </div>
 
           <!-- Totals list -->
@@ -359,18 +360,18 @@ const Dashboard = () => {
           </table>
         </div>
         <div style="font-size: 9px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 10px; margin-top: 30px;">
-          Confidential — Personal Financial Statement | Page 3
+          Confidential&nbsp;—&nbsp;Personal&nbsp;Financial&nbsp;Statement&nbsp;|&nbsp;Page&nbsp;3
         </div>
       </div>
 
       <div class="page-break" style="page-break-before: always;"></div>
 
       <!-- PAGE 4 -->
-      <div style="padding: 20px 0; min-height: 297mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+      <div style="padding: 10px 0 20px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
         <div>
           <!-- Header -->
           <div style="margin-bottom: 25px;">
-            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Monthly Analysis</h1>
+            <h1 style="font-size: 24px; font-weight: 800; color: #000000; margin: 0; text-transform: uppercase;">Monthly&nbsp;Analysis</h1>
             <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">Category-wise view of your spending</p>
           </div>
 
@@ -395,7 +396,7 @@ const Dashboard = () => {
           </div>
         </div>
         <div style="font-size: 9px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 10px; margin-top: 30px;">
-          Confidential — Personal Financial Statement | Page 4
+          Confidential&nbsp;—&nbsp;Personal&nbsp;Financial&nbsp;Statement&nbsp;|&nbsp;Page&nbsp;4
         </div>
       </div>
     `;

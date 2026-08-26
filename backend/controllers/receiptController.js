@@ -1,25 +1,6 @@
 const Receipt = require('../models/Receipt');
 
-// Try loading Google Gen AI SDK
-let GoogleGenAI;
-try {
-  const genaiSdk = require('@google/genai');
-  GoogleGenAI = genaiSdk.GoogleGenAI;
-} catch (err) {
-  console.warn('Google Gen AI SDK not loaded yet. Mock OCR mode will be active until npm install runs.');
-}
-
-// Helper to convert an in-memory file buffer to a GoogleGenAI Part object
-function fileToGenerativePart(buffer, mimeType) {
-  return {
-    inlineData: {
-      data: buffer.toString('base64'),
-      mimeType,
-    },
-  };
-}
-
-// @desc    Upload a receipt and extract details using Gemini AI
+// @desc    Upload a receipt and extract details using OCR.Space API
 // @route   POST /api/receipts/upload
 // @access  Private
 const uploadAndScanReceipt = async (req, res) => {
@@ -45,64 +26,120 @@ const uploadAndScanReceipt = async (req, res) => {
       items: [],
     };
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    let ocrSucceeded = false;
+    const apiKey = process.env.OCR_API_KEY;
 
-    if (GoogleGenAI && apiKey) {
-      console.log('Initializing Gemini AI with SDK...');
-      const ai = new GoogleGenAI({ apiKey });
+    if (apiKey) {
+      try {
+        console.log('Sending receipt to OCR.Space API...');
+        
+        // Convert file buffer to base64 with correct MIME type prefix
+        const base64Data = req.file.buffer.toString('base64');
+        const base64Image = `data:${mimeType};base64,${base64Data}`;
 
-      const prompt = `
-        Analyze this receipt image/PDF. Extract the following information:
-        - Merchant/Store name
-        - Total transaction amount (as a number)
-        - Transaction date (in YYYY-MM-DD format if possible)
-        - Individual items listed on the receipt, including their name and price.
+        const params = new URLSearchParams();
+        params.append('apikey', apiKey);
+        params.append('base64Image', base64Image);
+        params.append('language', 'eng');
+        params.append('isOverlayRequired', 'false');
 
-        Respond ONLY with a JSON object in this exact schema:
-        {
-          "merchant": "string",
-          "amount": number,
-          "date": "string (YYYY-MM-DD)",
-          "items": [
-            {
-              "name": "string",
-              "price": number
+        const response = await fetch('https://api.ocr.space/parse/image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: params,
+        });
+
+        const result = await response.json();
+
+        if (result && result.ParsedResults && result.ParsedResults[0]) {
+          const parsedText = result.ParsedResults[0].ParsedText || '';
+          console.log('OCR.Space raw parsed text successfully fetched.');
+
+          const lines = parsedText.split('\r\n').join('\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+          if (lines.length > 0) {
+            // Heuristic 1: Merchant name is usually the first non-empty line
+            ocrResult.merchant = lines[0] || 'Unknown Merchant';
+
+            // Heuristic 2: Find Transaction Date
+            // Regex to find dates like YYYY-MM-DD, DD/MM/YYYY, MM-DD-YYYY
+            const dateRegex = /\b(\d{1,4})[-/.](\d{1,2})[-/.](\d{1,4})\b/;
+            for (let i = 0; i < Math.min(lines.length, 10); i++) {
+              const dateMatch = lines[i].match(dateRegex);
+              if (dateMatch) {
+                const d = new Date(dateMatch[0]);
+                if (!isNaN(d.getTime())) {
+                  ocrResult.date = d;
+                  break;
+                }
+              }
             }
-          ]
-        }
-      `;
 
-      const filePart = fileToGenerativePart(req.file.buffer, mimeType);
+            // Heuristic 3: Find Total Amount
+            // Look for lines containing total keywords and floating numbers
+            const totalRegex = /(?:total|grand\s+total|net\s+total|amount|due|paid|subtotal)\s*[:=]*\s*[$₹£€]*\s*([\d,]+\.\d{2})/i;
+            const amountMatches = [];
+            lines.forEach(line => {
+              const match = line.match(totalRegex);
+              if (match) {
+                const val = parseFloat(match[1].replace(/,/g, ''));
+                if (!isNaN(val)) {
+                  amountMatches.push(val);
+                }
+              }
+            });
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [prompt, filePart],
-        config: {
-          responseMimeType: 'application/json',
-        },
-      });
+            if (amountMatches.length > 0) {
+              ocrResult.amount = Math.max(...amountMatches);
+            } else {
+              // Fallback: extract all floating numbers and find the largest one (usually the grand total)
+              const priceRegex = /\b([\d,]+\.\d{2})\b/g;
+              let match;
+              const allPrices = [];
+              while ((match = priceRegex.exec(parsedText)) !== null) {
+                const val = parseFloat(match[1].replace(/,/g, ''));
+                if (!isNaN(val)) {
+                  allPrices.push(val);
+                }
+              }
+              if (allPrices.length > 0) {
+                ocrResult.amount = Math.max(...allPrices);
+              }
+            }
 
-      const responseText = response.text || response.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (responseText) {
-        console.log('Gemini raw OCR response:', responseText);
-        try {
-          const parsed = JSON.parse(responseText);
-          ocrResult.merchant = parsed.merchant || 'Unknown Merchant';
-          ocrResult.amount = Number(parsed.amount) || 0;
-          if (parsed.date) {
-            ocrResult.date = new Date(parsed.date);
+            // Heuristic 4: Extract items
+            // Look for lines ending with a decimal price
+            const itemLineRegex = /^(.+?)\s+[$₹£€]?\s*([\d,]+\.\d{2})$/;
+            lines.forEach(line => {
+              if (/total|subtotal|tax|vat|due|change|cash|card|visa|master/i.test(line)) {
+                return;
+              }
+              const match = line.match(itemLineRegex);
+              if (match) {
+                const name = match[1].trim();
+                const price = parseFloat(match[2].replace(/,/g, ''));
+                if (name.length > 2 && !isNaN(price) && price < (ocrResult.amount || 999999)) {
+                  ocrResult.items.push({ name, price });
+                }
+              }
+            });
+
+            ocrSucceeded = true;
           }
-          ocrResult.items = Array.isArray(parsed.items) ? parsed.items.map(item => ({
-            name: item.name || 'Item',
-            price: Number(item.price) || 0,
-          })) : [];
-        } catch (parseErr) {
-          console.error('Failed to parse JSON response from Gemini, using fallback matching', parseErr);
+        } else {
+          console.warn('OCR.Space API returned an error structure:', result);
         }
+      } catch (ocrSpaceError) {
+        console.warn('OCR.Space API request failed, falling back to mock OCR data:', ocrSpaceError);
       }
     } else {
-      console.warn('Gemini API key not configured or SDK missing. Performing Mock OCR extraction.');
-      // Mock data based on some simple heuristics or randomized dummy receipt data
+      console.warn('OCR_API_KEY is not defined. Performing Mock OCR extraction.');
+    }
+
+    if (!ocrSucceeded) {
+      console.log('Using fallback Mock OCR extraction.');
       ocrResult = {
         merchant: 'Mock Grocery Mart',
         amount: 42.85,

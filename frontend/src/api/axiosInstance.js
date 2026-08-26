@@ -21,4 +21,19 @@ api.interceptors.request.use(
   }
 );
 
+// Automatically handle expired or stale JWT tokens by logging out and redirecting
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('user');
+      // Use window.location to force redirect and state reset
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
