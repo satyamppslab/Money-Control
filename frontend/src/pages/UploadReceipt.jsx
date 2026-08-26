@@ -44,16 +44,73 @@ const UploadReceipt = () => {
     }
   };
 
+  const compressImage = (fileToCompress) => {
+    return new Promise((resolve) => {
+      if (!fileToCompress.type.startsWith('image/')) {
+        return resolve(fileToCompress);
+      }
+
+      const reader = new FileReader();
+      reader.readAsDataURL(fileToCompress);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const maxWidth = 1600;
+          const maxHeight = 1600;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], fileToCompress.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                resolve(fileToCompress);
+              }
+            },
+            'image/jpeg',
+            0.85
+          );
+        };
+        img.onerror = () => resolve(fileToCompress);
+      };
+      reader.onerror = () => resolve(fileToCompress);
+    });
+  };
+
   const handleScanReceipt = async (e) => {
     e.preventDefault();
     if (!file) return;
 
     setLoading(true);
     setError('');
-    const formData = new FormData();
-    formData.append('receipt', file);
 
     try {
+      const optimizedFile = await compressImage(file);
+      const formData = new FormData();
+      formData.append('receipt', optimizedFile);
+
       const response = await api.post('/receipts/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
