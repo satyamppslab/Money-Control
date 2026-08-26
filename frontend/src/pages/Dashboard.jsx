@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import { useAuth } from '../contexts/AuthContext';
-import { DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp, Calendar, Tag, Trash2, ArrowRight, PieChart, Activity, ChevronLeft, ChevronRight, ListPlus, FileDown } from 'lucide-react';
+import { DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp, Calendar, Tag, Trash2, ArrowRight, PieChart, Activity, ChevronLeft, ChevronRight, ListPlus, FileDown, ScanLine } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 
 const Dashboard = () => {
@@ -438,6 +438,15 @@ const Dashboard = () => {
               <ChevronRight className="h-5 w-5" />
             </button>
           </div>
+
+          <Link
+            to="/upload-receipt"
+            className="bg-brand-500/15 hover:bg-brand-500/25 text-brand-600 dark:text-brand-400 border border-brand-500/30 px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow-md"
+            title="Scan Receipt with AI"
+          >
+            <ScanLine className="h-4.5 w-4.5" />
+            <span className="hidden sm:inline">Scan Receipt</span>
+          </Link>
 
           <button
             onClick={handleDownloadStatement}

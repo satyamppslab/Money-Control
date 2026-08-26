@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import { useAuth } from '../contexts/AuthContext';
-import { PlusCircle, Search, Trash2, Calendar, Tag, DollarSign, Filter } from 'lucide-react';
+import { PlusCircle, Search, Trash2, Calendar, Tag, DollarSign, Filter, ScanLine } from 'lucide-react';
 
 const Transactions = () => {
   const { formatAmount, currency, convertToBase, CURRENCY_SYMBOLS } = useAuth();
@@ -185,7 +186,17 @@ const Transactions = () => {
         {/* Add Transaction Side Form */}
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-md rounded-xl p-6 shadow-sm dark:shadow-none transition-colors duration-200">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Add Transaction</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add Transaction</h2>
+              <Link
+                to="/upload-receipt"
+                className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-500 flex items-center gap-1.5 bg-brand-500/10 hover:bg-brand-500/20 px-2.5 py-1.5 rounded-lg border border-brand-500/20 transition-all cursor-pointer shadow-sm"
+                title="Scan Receipt with AI"
+              >
+                <ScanLine className="h-3.5 w-3.5" />
+                <span>Scan Receipt</span>
+              </Link>
+            </div>
 
             <form onSubmit={handleAddTransaction} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
