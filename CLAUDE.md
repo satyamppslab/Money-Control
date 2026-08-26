@@ -33,7 +33,7 @@ Both apps must be run together for local development (backend on :5000, frontend
 Backend reads a `.env` file (gitignored) with:
 - `MONGO_URI` — MongoDB connection string. If missing/invalid, `config/db.js` silently falls back to `mongodb://127.0.0.1:27017/money-control` and logs a warning — a missing env var will not error, it'll just connect to local Mongo.
 - `JWT_SECRET` — signs auth tokens; falls back to a hardcoded `'secret123'` if unset (dev-only fallback, not safe for production).
-- `GEMINI_API_KEY` — enables real OCR via `@google/genai`. If unset (or the SDK fails to load), `receiptController.js` transparently falls back to **mock OCR data** rather than failing the upload.
+- `OCR_API_KEY` — enables real OCR via OCR.Space API.
 - `PORT` — backend port, default 5000.
 
 ## Architecture
@@ -60,7 +60,7 @@ Frontend and backend deploy as **one Vercel project on one domain** (not two sep
 - `builds`: `@vercel/node` builds `backend/api/index.js` as a serverless function; `@vercel/static-build` builds `frontend/` (via its `npm run build` / Vite) into `frontend/dist`.
 - `routes`: `/api/*` → the backend function; everything else falls through the static frontend build, with a SPA catch-all to `frontend/index.html` for client-side routing.
 - Because both live on the same domain, the frontend's `baseURL: '/api'` in `axiosInstance.js` and the dev-only Vite proxy both resolve correctly with no extra config — no `VITE_API_URL`-style env var is needed.
-- Required Vercel project env vars: `MONGO_URI` (must be a reachable cloud MongoDB, e.g. Atlas — the `127.0.0.1` fallback in `config/db.js` only works for local dev), `JWT_SECRET`, `GEMINI_API_KEY`. `PORT` is not used in serverless (Vercel controls the port).
+- Required Vercel project env vars: `MONGO_URI` (must be a reachable cloud MongoDB, e.g. Atlas — the `127.0.0.1` fallback in `config/db.js` only works for local dev), `JWT_SECRET`, `OCR_API_KEY`. `PORT` is not used in serverless (Vercel controls the port).
 
 ### Frontend (`frontend/`)
 - `src/main.jsx` → `src/App.jsx` sets up `react-router-dom` routes inside a single `AuthProvider`. Public routes: `/login`, `/register`. Private routes (wrapped in `<PrivateRoute />`, redirects to `/login` if no user): `/` (Dashboard), `/transactions`, `/upload-receipt`.
