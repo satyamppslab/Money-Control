@@ -4,20 +4,20 @@ import api from '../api/axiosInstance';
 const AuthContext = createContext();
 
 const CURRENCY_SYMBOLS = {
+  INR: '₹',
   USD: '$',
   EUR: '€',
   GBP: '£',
-  INR: '₹',
   JPY: '¥',
   CAD: 'C$',
   AUD: 'A$',
 };
 
 const CURRENCY_RATES = {
+  INR: 95.0,
   USD: 1.0,
   EUR: 0.92,
   GBP: 0.78,
-  INR: 95.0, // 1 USD = 95 INR as requested
   JPY: 155.0,
   CAD: 1.36,
   AUD: 1.50,
