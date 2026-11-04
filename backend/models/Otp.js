@@ -1,24 +1,26 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const otpSchema = new mongoose.Schema({
-  phone: {
-    type: String,
-    required: true,
-    index: true,
-  },
   email: {
     type: String,
-    required: false,
+    required: true,
+    lowercase: true,
+    trim: true,
+    index: true,
   },
-  otp: {
+  otpHash: {
     type: String,
     required: true,
+  },
+  attempts: {
+    type: Number,
+    default: 0,
   },
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 300, // Document automatically removed by MongoDB after 5 minutes (300 seconds)
+    expires: 600, // 10 minutes
   },
 });
 
-module.exports = mongoose.model('Otp', otpSchema);
+module.exports = mongoose.model("Otp", otpSchema);

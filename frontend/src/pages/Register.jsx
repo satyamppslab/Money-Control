@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Lock, Mail, User, ArrowRight, Eye, EyeOff, Phone, ChevronDown } from 'lucide-react';
+import { Lock, Mail, User, ArrowRight, Eye, EyeOff, Phone, ChevronDown, CheckCircle2, RotateCcw } from 'lucide-react';
 
 const COUNTRY_RULES = {
   '+91': { min: 10, max: 10, label: '10 digits', name: 'India' },
@@ -34,12 +34,13 @@ const Register = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // OTP Verification States
+  // Email OTP States
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [toastMsg, setToastMsg] = useState('');
+  const [cooldown, setCooldown] = useState(0);
 
-  const { register, sendOtp, currency } = useAuth();
+  const { verifyOtp, sendOtp, currency } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,9 +48,28 @@ const Register = () => {
     setCountryCode(defaultCode);
   }, [currency]);
 
-  const handleSubmit = async (e) => {
+  // Resend cooldown timer tick
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  // Normalize phone number for E.164 if provided
+  const getE164Phone = () => {
+    const cleanDigits = phone.replace(/\D/g, '');
+    if (!cleanDigits) return '';
+    const nationalNumber = cleanDigits.startsWith('0') ? cleanDigits.slice(1) : cleanDigits;
+    return `${countryCode}${nationalNumber}`;
+  };
+
+  // Step 1: Request OTP code via Email
+  const handleRequestOtp = async (e) => {
     e.preventDefault();
     setError('');
+    setToastMsg('');
 
     // Password matching validation
     if (password !== confirmPassword) {
@@ -57,7 +77,7 @@ const Register = () => {
       return;
     }
 
-    // Password strength validation (capital letter, number, and special character required)
+    // Password strength validation
     const hasCapital = /[A-Z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
@@ -67,74 +87,74 @@ const Register = () => {
       return;
     }
 
-    // Phone number validation
-    const cleanPhone = phone.replace(/\D/g, ''); // strip non-digits
-    const rule = COUNTRY_RULES[countryCode];
-    if (rule) {
-      if (cleanPhone.length < rule.min || cleanPhone.length > rule.max) {
+    // Phone number validation (optional)
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone) {
+      const rule = COUNTRY_RULES[countryCode];
+      if (rule && (cleanPhone.length < rule.min || cleanPhone.length > rule.max)) {
         setError(`For ${rule.name} (${countryCode}), the phone number must be exactly ${rule.label}.`);
-        return;
-      }
-    } else {
-      if (cleanPhone.length < 7 || cleanPhone.length > 15) {
-        setError('Please enter a valid phone number (7 to 15 digits).');
         return;
       }
     }
 
     setLoading(true);
-    const fullPhoneNumber = `${countryCode}${cleanPhone}`;
 
     try {
-      const data = await sendOtp(email, fullPhoneNumber);
-      if (data.success) {
-        setIsOtpSent(true);
-        setToastMsg(data.mockOtp ? 'Verification code sent! (Check backend logs for code)' : 'Verification code sent to your mobile number!');
-      }
+      const res = await sendOtp(email.trim());
+      setIsOtpSent(true);
+      setToastMsg(res.message || 'Verification code sent to your email.');
+      setCooldown(60);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send verification code. Try again.');
+      const msg = err.response?.data?.message || 'Failed to send verification code. Please check your email.';
+      setError(msg);
+      if (err.response?.data?.retryAfter) {
+        setCooldown(err.response.data.retryAfter);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Step 2: Verify OTP and Register Account
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError('');
-    
-    if (!/^\d{6}$/.test(otp)) {
-      setError('Verification code must be a 6-digit number.');
+
+    if (!/^\d{6}$/.test(otp.trim())) {
+      setError('Verification code must be exactly 6 digits.');
       return;
     }
 
     setLoading(true);
-    const cleanPhone = phone.replace(/\D/g, '');
-    const fullPhoneNumber = `${countryCode}${cleanPhone}`;
+    const fullPhoneNumber = getE164Phone();
 
     try {
-      await register(username, email, password, fullPhoneNumber, otp);
+      await verifyOtp(username.trim(), email.trim(), password, fullPhoneNumber, otp.trim());
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'OTP verification failed. Please check the code.');
+      setError(err.response?.data?.message || 'Invalid or expired verification code. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Resend OTP handler
   const handleResendOtp = async () => {
+    if (cooldown > 0 || loading) return;
     setError('');
     setLoading(true);
     setToastMsg('');
-    const cleanPhone = phone.replace(/\D/g, '');
-    const fullPhoneNumber = `${countryCode}${cleanPhone}`;
 
     try {
-      const data = await sendOtp(email, fullPhoneNumber);
-      if (data.success) {
-        setToastMsg(data.mockOtp ? 'New verification code sent! (Check backend logs for code)' : 'New verification code sent to your mobile number!');
-      }
+      await sendOtp(email.trim());
+      setToastMsg('A fresh verification code has been sent to your email.');
+      setCooldown(60);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to resend verification code.');
+      const msg = err.response?.data?.message || 'Failed to resend verification code.';
+      setError(msg);
+      if (err.response?.data?.retryAfter) {
+        setCooldown(err.response.data.retryAfter);
+      }
     } finally {
       setLoading(false);
     }
@@ -148,11 +168,11 @@ const Register = () => {
       <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl p-8 rounded-2xl w-full max-w-md shadow-2xl relative z-10 transition-colors duration-200">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {isOtpSent ? 'Verify Phone' : 'Create Account'}
+            {isOtpSent ? 'Verify Email' : 'Create Account'}
           </h2>
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">
             {isOtpSent
-              ? `Enter the code sent to ${countryCode} ${phone}`
+              ? `Enter the 6-digit code sent to ${email}`
               : 'Join MoneyControl and take charge of your finances'}
           </p>
         </div>
@@ -164,64 +184,82 @@ const Register = () => {
         )}
 
         {toastMsg && (
-          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-3 rounded-lg text-sm mb-6 font-semibold animate-pulse text-center">
-            {toastMsg}
+          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-3 rounded-lg text-sm mb-6 font-semibold flex items-center justify-center gap-2 text-center">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>{toastMsg}</span>
           </div>
         )}
 
+
+
         {isOtpSent ? (
+          /* Step 2: OTP Verification Form */
           <form onSubmit={handleVerifyOtp} className="space-y-5">
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">Verification Code (OTP)</label>
+              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">
+                6-Digit Verification Code
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-450 dark:text-slate-500" />
                 <input
                   type="text"
                   required
+                  autoFocus
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Enter 6-digit OTP"
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="123456"
                   maxLength={6}
                   minLength={6}
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2.5 pl-10 pr-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2.5 pl-10 pr-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 tracking-widest text-center text-lg font-mono transition-all"
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || otp.length !== 6}
               className="w-full bg-gradient-to-r from-brand-500 to-emerald-600 hover:from-brand-600 hover:to-emerald-700 text-slate-950 font-bold py-3 rounded-lg flex items-center justify-center space-x-2 shadow-lg shadow-brand-500/10 hover:shadow-brand-500/20 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer disabled:opacity-50"
             >
               <span>{loading ? 'Verifying...' : 'Verify & Register'}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
 
-            <div className="flex justify-between items-center text-xs mt-4">
+            <div className="flex justify-between items-center text-xs mt-4 pt-2 border-t border-slate-100 dark:border-slate-800/60">
               <button
                 type="button"
                 onClick={handleResendOtp}
-                disabled={loading}
-                className="text-brand-600 dark:text-brand-400 hover:underline cursor-pointer font-semibold"
+                disabled={loading || cooldown > 0}
+                className={`flex items-center gap-1 font-semibold transition-colors ${
+                  cooldown > 0 || loading
+                    ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                    : 'text-brand-600 dark:text-brand-400 hover:underline cursor-pointer'
+                }`}
               >
-                Resend Code
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>{cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}</span>
               </button>
               <button
                 type="button"
-                onClick={() => setIsOtpSent(false)}
+                onClick={() => {
+                  setIsOtpSent(false);
+                  setOtp('');
+                  setError('');
+                  setToastMsg('');
+                }}
                 className="text-slate-500 dark:text-slate-400 hover:underline cursor-pointer"
               >
-                Edit Info
+                Change Email
               </button>
             </div>
           </form>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
+          /* Step 1: Initial Registration Details Form */
+          <form onSubmit={handleRequestOtp} className="space-y-4">
             {/* Username */}
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">Username</label>
+              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-1.5">Username</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-450 dark:text-slate-500" />
                 <input
@@ -237,7 +275,7 @@ const Register = () => {
 
             {/* Email */}
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">Email Address</label>
+              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-1.5">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-450 dark:text-slate-500" />
                 <input
@@ -251,9 +289,11 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Phone Number */}
+            {/* Phone Number (Optional) */}
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">Phone Number</label>
+              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-1.5">
+                Phone Number <span className="text-xs text-slate-400 font-normal">(Optional)</span>
+              </label>
               <div className="flex gap-2">
                 <div className="relative">
                   <select
@@ -263,7 +303,7 @@ const Register = () => {
                       setCountryCode(targetVal);
                       const rule = COUNTRY_RULES[targetVal];
                       if (rule) {
-                        setPhone(prev => prev.slice(0, rule.max));
+                        setPhone((prev) => prev.slice(0, rule.max));
                       }
                     }}
                     className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-3 pr-7 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 text-sm transition-all cursor-pointer appearance-none"
@@ -283,14 +323,12 @@ const Register = () => {
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-450 dark:text-slate-500" />
                   <input
                     type="text"
-                    required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                     placeholder={COUNTRY_RULES[countryCode]?.label || 'Phone number'}
                     inputMode="numeric"
                     pattern="[0-9]*"
                     maxLength={COUNTRY_RULES[countryCode]?.max || 15}
-                    minLength={COUNTRY_RULES[countryCode]?.min || 7}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 rounded-lg py-2.5 pl-10 pr-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all text-sm"
                   />
                 </div>
@@ -299,7 +337,7 @@ const Register = () => {
 
             {/* Password */}
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">Password</label>
+              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-1.5">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-450 dark:text-slate-500" />
                 <input
@@ -313,7 +351,7 @@ const Register = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-450 dark:text-slate-500 hover:text-slate-755 dark:hover:text-slate-300 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-450 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 focus:outline-none"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -322,7 +360,7 @@ const Register = () => {
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">Confirm Password</label>
+              <label className="block text-slate-700 dark:text-slate-300 text-sm font-semibold mb-1.5">Confirm Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-450 dark:text-slate-500" />
                 <input
@@ -336,20 +374,20 @@ const Register = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-450 dark:text-slate-500 hover:text-slate-755 dark:hover:text-slate-300 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-450 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 focus:outline-none"
                 >
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Action button */}
+            {/* Submit Action button */}
             <button
               type="submit"
               disabled={loading}
               className="w-full mt-2 bg-gradient-to-r from-brand-500 to-emerald-600 hover:from-brand-600 hover:to-emerald-700 text-slate-950 font-bold py-3 rounded-lg flex items-center justify-center space-x-2 shadow-lg shadow-brand-500/10 hover:shadow-brand-500/20 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer disabled:opacity-50"
             >
-              <span>{loading ? 'Sending Code...' : 'Sign Up'}</span>
+              <span>{loading ? 'Sending Code...' : 'Continue to Verify'}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </form>

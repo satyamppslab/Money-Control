@@ -1,7 +1,11 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Otp = require('../models/Otp');
-const jwt = require('jsonwebtoken');
-const twilio = require('twilio');
+const sendOtpEmail = require('../utils/sendEmail');
+
+// Simple email regex validation
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Generate JWT token
 const generateToken = (id) => {
@@ -10,112 +14,121 @@ const generateToken = (id) => {
   });
 };
 
-// Send SMS via Twilio if configured
-const sendSMS = async (to, body) => {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
-
-  if (accountSid && authToken && fromNumber) {
-    try {
-      const client = twilio(accountSid, authToken);
-      await client.messages.create({ body, from: fromNumber, to });
-      console.log(`[SMS SYSTEM] Real SMS successfully sent to ${to} via Twilio.`);
-      return true;
-    } catch (err) {
-      console.error(`[SMS SYSTEM] Twilio message send failed:`, err);
-      return false;
-    }
-  } else {
-    console.warn(`[SMS SYSTEM] Twilio is not configured. Falling back to on-screen / mock mode.`);
-    return false;
-  }
-};
-
-// @desc    Send registration verification OTP
+// @desc    Send registration verification OTP via Email
 // @route   POST /api/auth/send-otp
 // @access  Public
 const sendOtp = async (req, res) => {
-  const { email, phone } = req.body;
-
   try {
-    const userExists = await User.findOne({ email });
+    const email = req.body.email?.toLowerCase().trim();
 
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email required' });
     }
 
-    // Generate random 6-digit OTP
+    if (!EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ success: false, message: 'Invalid email address format' });
+    }
+
+    // Check if user already exists
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'A user is already registered with this email address.',
+      });
+    }
+
+    // Generate 6-digit numeric OTP and bcrypt hash
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpHash = await bcrypt.hash(otp, 10);
 
-    // Persist OTP in MongoDB (persistent across serverless instances)
-    await Otp.deleteMany({ phone });
-    await Otp.create({ phone, email, otp });
+    // Remove old OTPs for this email and create new one
+    await Otp.deleteMany({ email });
+    await Otp.create({ email, otpHash });
 
-    // Send SMS (real via Twilio or fallback mock)
-    const smsBody = `Your MoneyControl verification code is: ${otp}`;
-    const sentReal = await sendSMS(phone, smsBody);
+    // Send email via Gmail transporter
+    await sendOtpEmail(email, otp);
 
-    console.log(`\n========================================`);
-    console.log(`[OTP SYSTEM] OTP code for ${phone} is: ${otp} (Real SMS Sent: ${sentReal})`);
-    console.log(`========================================\n`);
-
-    res.status(200).json({
+    return res.json({
       success: true,
-      message: sentReal 
-        ? 'Verification code sent to your mobile number.' 
-        : `Verification code: ${otp}`,
-      mockOtp: sentReal ? undefined : otp,
+      message: 'Verification code sent to your email',
     });
-  } catch (error) {
-    console.error('[OTP SYSTEM] Error sending OTP:', error);
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    console.error('[AUTH SYSTEM] Could not send OTP email:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Could not send verification email. Please try again.',
+    });
   }
 };
 
-// @desc    Register a new user
-// @route   POST /api/auth/register
+// @desc    Verify OTP & Register user
+// @route   POST /api/auth/verify-otp (and POST /api/auth/register)
 // @access  Public
-const registerUser = async (req, res) => {
-  const { username, email, password, phone, otp } = req.body;
-
+const verifyOtp = async (req, res) => {
   try {
-    const userExists = await User.findOne({ email });
+    const email = req.body.email?.toLowerCase().trim();
+    const { otp, username, password, phone } = req.body;
 
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and verification code are required' });
     }
 
-    // Validate OTP against MongoDB database
-    const record = await Otp.findOne({ phone, otp });
+    const record = await Otp.findOne({ email });
     if (!record) {
-      return res.status(400).json({ message: 'Invalid or expired verification code.' });
+      return res.status(400).json({ success: false, message: 'Code expired. Request a new one.' });
     }
 
-    // Delete used OTP from MongoDB
-    await Otp.deleteMany({ phone });
+    if (record.attempts >= 5) {
+      await record.deleteOne();
+      return res.status(429).json({ success: false, message: 'Too many attempts. Request a new code.' });
+    }
 
-    const user = await User.create({
-      username,
-      email,
-      password,
-      phone,
-    });
+    const valid = await bcrypt.compare(String(otp).trim(), record.otpHash);
+    if (!valid) {
+      record.attempts += 1;
+      await record.save();
+      const remaining = 5 - record.attempts;
+      return res.status(400).json({
+        success: false,
+        message: remaining > 0 ? `Invalid code. ${remaining} attempts remaining.` : 'Invalid code.',
+      });
+    }
 
-    if (user) {
-      res.status(201).json({
+    // OTP is valid - delete the OTP record
+    await record.deleteOne();
+
+    // If registration details are provided, create user and return JWT
+    if (password) {
+      const userExists = await User.findOne({ email });
+      if (userExists) {
+        return res.status(400).json({ success: false, message: 'A user is already registered with this email address.' });
+      }
+
+      const user = await User.create({
+        username: username ? username.trim() : email.split('@')[0],
+        email,
+        password,
+        phone: phone && typeof phone === 'string' && phone.trim() ? phone.trim() : undefined,
+      });
+
+      console.log(`[AUTH SYSTEM] User registered successfully: ${email}`);
+
+      return res.status(201).json({
+        success: true,
         _id: user._id,
         username: user.username,
         email: user.email,
         phone: user.phone,
         token: generateToken(user._id),
+        message: 'Email verified & registered successfully',
       });
-    } else {
-      res.status(400).json({ message: 'Invalid user data' });
     }
-  } catch (error) {
-    console.error('[AUTH SYSTEM] Registration error:', error);
-    res.status(500).json({ message: error.message });
+
+    return res.json({ success: true, message: 'Email verified' });
+  } catch (err) {
+    console.error('[AUTH SYSTEM] Verify OTP error:', err);
+    return res.status(500).json({ success: false, message: err.message || 'Server error' });
   }
 };
 
@@ -126,21 +139,32 @@ const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required.' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (user && (await user.matchPassword(password))) {
-      res.json({
+      return res.json({
         _id: user._id,
         username: user.username,
         email: user.email,
+        phone: user.phone,
         token: generateToken(user._id),
       });
     } else {
-      res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Invalid email or password.' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[AUTH SYSTEM] Login error:', error.message);
+    return res.status(500).json({ message: error.message || 'Server error during login.' });
   }
 };
 
-module.exports = { registerUser, loginUser, sendOtp };
+module.exports = {
+  sendOtp,
+  verifyOtp,
+  registerUser: verifyOtp,
+  loginUser,
+};

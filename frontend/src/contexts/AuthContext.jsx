@@ -123,17 +123,19 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  const sendOtp = async (email, phone) => {
-    const response = await api.post('/auth/send-otp', { email, phone });
+  const sendOtp = async (email) => {
+    const response = await api.post('/auth/send-otp', { email });
     return response.data;
   };
 
-  const register = async (username, email, password, phone, otp) => {
-    const response = await api.post('/auth/register', { username, email, password, phone, otp });
+  const verifyOtp = async (username, email, password, phone, otp) => {
+    const response = await api.post('/auth/verify-otp', { username, email, password, phone, otp });
     setUser(response.data);
     localStorage.setItem('user', JSON.stringify(response.data));
     return response.data;
   };
+
+  const register = verifyOtp;
 
   const logout = () => {
     setUser(null);
@@ -141,7 +143,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, currency, setCurrency, formatAmount, CURRENCY_SYMBOLS, theme, toggleTheme, convertToBase, convertFromBase, rates, sendOtp }}>
+    <AuthContext.Provider value={{ user, loading, login, register, verifyOtp, logout, currency, setCurrency, formatAmount, CURRENCY_SYMBOLS, theme, toggleTheme, convertToBase, convertFromBase, rates, sendOtp }}>
       {!loading && children}
     </AuthContext.Provider>
   );
