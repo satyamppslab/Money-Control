@@ -57,7 +57,7 @@ const sendOtp = async (req, res) => {
     console.error('[AUTH SYSTEM] Could not send OTP email:', err);
     return res.status(500).json({
       success: false,
-      message: 'Could not send verification email. Please try again.',
+      message: err.message || 'Could not send verification email. Please try again.',
     });
   }
 };

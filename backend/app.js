@@ -18,7 +18,14 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date(),
-    emailConfigured: Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS),
+    env: {
+      hasMongoUri: Boolean(process.env.MONGO_URI),
+      hasEmailUser: Boolean(process.env.EMAIL_USER),
+      hasEmailPass: Boolean(process.env.EMAIL_PASS),
+      emailUser: process.env.EMAIL_USER ? process.env.EMAIL_USER.replace(/(.{2})(.*)(@.*)/, '$1***$3') : null,
+      isVercel: Boolean(process.env.VERCEL),
+      nodeEnv: process.env.NODE_ENV,
+    },
   });
 });
 

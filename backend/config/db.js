@@ -15,8 +15,10 @@ const connectDB = async () => {
   if (!cached.promise) {
     let connectionString = process.env.MONGO_URI;
 
-    // Fallback to local MongoDB if environment variable is missing, empty, or placeholder
     if (!connectionString || (!connectionString.startsWith('mongodb://') && !connectionString.startsWith('mongodb+srv://'))) {
+      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+        throw new Error('MONGO_URI is missing or invalid in production/Vercel environment variables.');
+      }
       connectionString = 'mongodb://127.0.0.1:27017/money-control';
       console.log('Using local MongoDB fallback connection...');
     }
