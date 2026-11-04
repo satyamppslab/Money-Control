@@ -15,7 +15,11 @@ app.use('/api/receipts', require('./routes/receiptRoutes'));
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date() });
+  res.json({
+    status: 'healthy',
+    timestamp: new Date(),
+    emailConfigured: Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS),
+  });
 });
 
 module.exports = app;
